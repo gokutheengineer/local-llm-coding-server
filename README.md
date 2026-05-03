@@ -24,8 +24,8 @@ fluff — just IDE autocomplete, inline edits, and agentic coding.
 
 ```
 [Other laptop]  ->  VS Code + Continue/Cline    \
-[Other laptop]  ->  Tarayici + Open WebUI        \--> [M1 Mac: Ollama :11434]
-[Phone/iPad]    ->  Tarayici + Open WebUI        /          (Metal GPU)
+[Other laptop]  ->  Browser + Open WebUI        \--> [M1 Mac: Ollama :11434]
+[Phone/iPad]    ->  Browser + Open WebUI        /          (Metal GPU)
                           (Tailscale VPN)
 ```
 

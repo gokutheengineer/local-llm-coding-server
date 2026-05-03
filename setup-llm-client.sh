@@ -18,12 +18,40 @@ die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*"; exit 1; }
 # ---- Homebrew (mac) ----
 if [[ "$(uname -s)" == "Darwin" ]]; then
   if ! command -v brew >/dev/null 2>&1; then
+    log "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     eval "$(/opt/homebrew/bin/brew shellenv)" 2>/dev/null || \
       eval "$(/usr/local/bin/brew shellenv)"
+  else
+    log "Homebrew already installed."
   fi
-  brew install --cask tailscale visual-studio-code
+
+  # Casks: skip brew install if the app already exists outside Homebrew (avoids "already an App" errors).
+  if brew list --cask tailscale >/dev/null 2>&1; then
+    log "Tailscale already installed (Homebrew)."
+    brew upgrade --cask tailscale || true
+  elif [[ -d /Applications/Tailscale.app ]]; then
+    log "Tailscale already present at /Applications/Tailscale.app (not managed by Homebrew). Skipping install."
+    warn "To switch to Homebrew: remove Tailscale from Applications, then re-run this script."
+  else
+    log "Installing Tailscale..."
+    brew install --cask tailscale
+  fi
+
+  if brew list --cask visual-studio-code >/dev/null 2>&1; then
+    log "Visual Studio Code already installed (Homebrew)."
+    brew upgrade --cask visual-studio-code || true
+  elif [[ -d "/Applications/Visual Studio Code.app" ]]; then
+    log "Visual Studio Code already in /Applications (not managed by Homebrew). Skipping install."
+    warn "To switch to Homebrew: remove Visual Studio Code from Applications, then re-run."
+  else
+    log "Installing Visual Studio Code..."
+    brew install --cask visual-studio-code
+  fi
+
+  log "Ensuring python, git, pipx..."
   brew install python git pipx
+  brew upgrade python git pipx || true
 fi
 
 # ---- Connectivity check ----
@@ -85,8 +113,15 @@ fi
 
 # ---- Aider (terminal agent) ----
 if command -v pipx >/dev/null 2>&1; then
-  pipx install aider-chat || pipx upgrade aider-chat
+  if pipx list --short 2>/dev/null | grep -qE '^aider-chat([[:space:]]|$)'; then
+    log "Upgrading aider-chat (pipx)..."
+    pipx upgrade aider-chat || true
+  else
+    log "Installing aider-chat (pipx)..."
+    pipx install aider-chat
+  fi
 else
+  log "Installing aider-chat via pip (user)..."
   python3 -m pip install --user --upgrade aider-chat
 fi
 

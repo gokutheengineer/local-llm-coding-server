@@ -30,29 +30,42 @@ else
   log "Homebrew already installed."
 fi
 
-# ---- Core CLI tools ----
-log "Installing core tools..."
+# ---- Core CLI tools (formulas: install if missing, then best-effort upgrade) ----
+log "Ensuring core tools: ollama, git, wget, htop, jq..."
 brew install ollama git wget htop jq
+brew upgrade ollama git wget htop jq || true
 
 # ---- Tailscale ----
+# Same idea as Docker: avoid brew install --cask if the app already lives in /Applications.
 if [[ "$INSTALL_TAILSCALE" == "1" ]]; then
-  if ! brew list --cask tailscale >/dev/null 2>&1; then
+  if brew list --cask tailscale >/dev/null 2>&1; then
+    log "Tailscale already installed (Homebrew)."
+    brew upgrade --cask tailscale || true
+  elif [[ -d /Applications/Tailscale.app ]]; then
+    log "Tailscale already present at /Applications/Tailscale.app (not managed by Homebrew). Skipping install."
+    warn "To switch to Homebrew: remove Tailscale from Applications, then re-run this script."
+  else
     log "Installing Tailscale..."
     brew install --cask tailscale
     warn "Open the Tailscale app and sign in. Then re-run this script (it will skip what's done)."
-  else
-    log "Tailscale already installed."
   fi
 fi
 
 # ---- Docker (only if WebUI requested) ----
+# Homebrew cask name is "docker" (installs Docker Desktop). Also detect a manual
+# /Applications/Docker.app install so we do not run brew install into a conflict.
 if [[ "$INSTALL_WEBUI" == "1" ]]; then
-  if ! brew list --cask docker >/dev/null 2>&1; then
+  if brew list --cask docker >/dev/null 2>&1; then
+    log "Docker Desktop already installed (Homebrew)."
+    log "Checking for Docker Desktop updates..."
+    brew upgrade --cask docker || true
+  elif [[ -d /Applications/Docker.app ]]; then
+    log "Docker Desktop already present at /Applications/Docker.app (not managed by Homebrew). Skipping install."
+    warn "To switch to Homebrew: quit Docker, remove the app from Applications, then re-run this script."
+  else
     log "Installing Docker Desktop..."
     brew install --cask docker
     warn "Open Docker Desktop once to finish first-time setup, then re-run."
-  else
-    log "Docker Desktop already installed."
   fi
 fi
 
