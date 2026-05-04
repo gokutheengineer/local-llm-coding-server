@@ -3,23 +3,29 @@
 # Run on the headless M1 MacBook Pro.
 # Usage:  bash setup-llm-server.sh
 # Env toggles:
-#   INSTALL_WEBUI=1    (default 1) install Open WebUI in Docker
+#   INSTALL_WEBUI=1    (default 0) install Open WebUI in Docker
 #   INSTALL_TAILSCALE=1
 #   PULL_MODELS=1
 
 set -euo pipefail
 
-INSTALL_WEBUI="${INSTALL_WEBUI:-1}"
+INSTALL_WEBUI="${INSTALL_WEBUI:-0}"
 INSTALL_TAILSCALE="${INSTALL_TAILSCALE:-1}"
 PULL_MODELS="${PULL_MODELS:-1}"
 
 log()  { printf "\033[1;36m[+] %s\033[0m\n" "$*"; }
 warn() { printf "\033[1;33m[!] %s\033[0m\n" "$*"; }
 die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*"; exit 1; }
+ensure_sudo() {
+  log "Requesting sudo access upfront (for smoother run)..."
+  sudo -v || die "Sudo authentication failed."
+  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+}
 
 # ---- Sanity checks ----
 [[ "$(uname -s)" == "Darwin" ]] || die "macOS only."
 [[ "$(uname -m)" == "arm64" ]]  || die "Apple Silicon (arm64) only."
+ensure_sudo
 
 # ---- Homebrew ----
 if ! command -v brew >/dev/null 2>&1; then

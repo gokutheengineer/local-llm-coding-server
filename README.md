@@ -40,10 +40,13 @@ bash setup-llm-server.sh
 Toggles:
 
 ```bash
-INSTALL_WEBUI=0    bash setup-llm-server.sh   # skip Open WebUI
+INSTALL_WEBUI=1     bash setup-llm-server.sh   # install/start Open WebUI (Docker)
 INSTALL_TAILSCALE=0 bash setup-llm-server.sh  # skip Tailscale install
 PULL_MODELS=0      bash setup-llm-server.sh   # skip model downloads
 ```
+
+Default behavior: Open WebUI/Docker steps are skipped unless you explicitly set
+`INSTALL_WEBUI=1`.
 
 After it finishes, sign into Tailscale (GUI), then note your Tailscale IP:
 

@@ -2,6 +2,7 @@
 # Local LLM client setup: VS Code + Continue + Cline + Aider, pointed at your M1 server.
 # Usage:  SERVER_IP=100.x.y.z bash setup-llm-client.sh
 # Works on macOS (Apple Silicon or Intel). Linux notes inline.
+# Note: Docker/Open WebUI on the server is optional; this client uses Ollama API directly.
 
 set -euo pipefail
 
@@ -12,11 +13,17 @@ AUTOCOMPLETE_MODEL="${AUTOCOMPLETE_MODEL:-qwen2.5-coder:7b-base-q4_K_M}"
 log()  { printf "\033[1;36m[+] %s\033[0m\n" "$*"; }
 warn() { printf "\033[1;33m[!] %s\033[0m\n" "$*"; }
 die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*"; exit 1; }
+ensure_sudo() {
+  log "Requesting sudo access upfront (for smoother run)..."
+  sudo -v || die "Sudo authentication failed."
+  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+}
 
 [[ -n "$SERVER_IP" ]] || die "Set SERVER_IP env var (your M1's Tailscale IP)."
 
 # ---- Homebrew (mac) ----
 if [[ "$(uname -s)" == "Darwin" ]]; then
+  ensure_sudo
   if ! command -v brew >/dev/null 2>&1; then
     log "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
