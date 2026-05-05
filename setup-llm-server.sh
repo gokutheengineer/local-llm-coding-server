@@ -16,6 +16,16 @@ PULL_MODELS="${PULL_MODELS:-1}"
 log()  { printf "\033[1;36m[+] %s\033[0m\n" "$*"; }
 warn() { printf "\033[1;33m[!] %s\033[0m\n" "$*"; }
 die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*"; exit 1; }
+install_formula_if_missing() {
+  local formula="$1"
+
+  if brew list --formula "$formula" >/dev/null 2>&1; then
+    log "$formula already installed. Skipping."
+  else
+    log "Installing $formula..."
+    brew install "$formula"
+  fi
+}
 ensure_sudo() {
   log "Requesting sudo access upfront (for smoother run)..."
   sudo -v || die "Sudo authentication failed."
@@ -36,17 +46,17 @@ else
   log "Homebrew already installed."
 fi
 
-# ---- Core CLI tools (formulas: install if missing, then best-effort upgrade) ----
+# ---- Core CLI tools ----
 log "Ensuring core tools: ollama, git, wget, htop, jq..."
-brew install ollama git wget htop jq
-brew upgrade ollama git wget htop jq || true
+for formula in ollama git wget htop jq; do
+  install_formula_if_missing "$formula"
+done
 
 # ---- Tailscale ----
 # Same idea as Docker: avoid brew install --cask if the app already lives in /Applications.
 if [[ "$INSTALL_TAILSCALE" == "1" ]]; then
   if brew list --cask tailscale >/dev/null 2>&1; then
-    log "Tailscale already installed (Homebrew)."
-    brew upgrade --cask tailscale || true
+    log "Tailscale already installed (Homebrew). Skipping."
   elif [[ -d /Applications/Tailscale.app ]]; then
     log "Tailscale already present at /Applications/Tailscale.app (not managed by Homebrew). Skipping install."
     warn "To switch to Homebrew: remove Tailscale from Applications, then re-run this script."
@@ -62,9 +72,7 @@ fi
 # /Applications/Docker.app install so we do not run brew install into a conflict.
 if [[ "$INSTALL_WEBUI" == "1" ]]; then
   if brew list --cask docker >/dev/null 2>&1; then
-    log "Docker Desktop already installed (Homebrew)."
-    log "Checking for Docker Desktop updates..."
-    brew upgrade --cask docker || true
+    log "Docker Desktop already installed (Homebrew). Skipping."
   elif [[ -d /Applications/Docker.app ]]; then
     log "Docker Desktop already present at /Applications/Docker.app (not managed by Homebrew). Skipping install."
     warn "To switch to Homebrew: quit Docker, remove the app from Applications, then re-run this script."

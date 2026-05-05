@@ -40,8 +40,7 @@ install_cask_if_missing() {
   local label="$3"
 
   if brew list --cask "$cask" >/dev/null 2>&1; then
-    log "$label already installed (Homebrew)."
-    brew upgrade --cask "$cask" || true
+    log "$label already installed (Homebrew). Skipping."
   elif [[ -d "$app_path" ]]; then
     log "$label already exists at $app_path. Skipping Homebrew install."
   else
@@ -50,16 +49,34 @@ install_cask_if_missing() {
   fi
 }
 
+install_formula_if_missing() {
+  local formula="$1"
+
+  if brew list --formula "$formula" >/dev/null 2>&1; then
+    log "$formula already installed. Skipping."
+  else
+    log "Installing $formula..."
+    brew install "$formula"
+  fi
+}
+
 install_vscode_extensions() {
   local cli
+  local ext
   local installed_any=0
 
   for cli in code cursor; do
     if command -v "$cli" >/dev/null 2>&1; then
       installed_any=1
-      log "Installing Continue + Cline extensions via '$cli'..."
-      "$cli" --install-extension Continue.continue --force || warn "Continue install failed for $cli."
-      "$cli" --install-extension saoudrizwan.claude-dev --force || warn "Cline install failed for $cli."
+      log "Checking Continue + Cline extensions via '$cli'..."
+      for ext in Continue.continue saoudrizwan.claude-dev; do
+        if "$cli" --list-extensions | grep -qx "$ext"; then
+          log "$ext already installed for $cli. Skipping."
+        else
+          log "Installing $ext for $cli..."
+          "$cli" --install-extension "$ext" || warn "$ext install failed for $cli."
+        fi
+      done
     fi
   done
 
@@ -118,16 +135,17 @@ JSON
 install_aider() {
   if command -v pipx >/dev/null 2>&1; then
     if pipx list --short 2>/dev/null | grep -qE '^aider-chat([[:space:]]|$)'; then
-      log "Upgrading aider-chat (pipx)..."
-      pipx upgrade aider-chat || true
+      log "aider-chat already installed (pipx). Skipping."
     else
       log "Installing aider-chat (pipx)..."
       pipx install aider-chat
     fi
     pipx ensurepath || true
+  elif command -v aider >/dev/null 2>&1; then
+    log "aider already available on PATH. Skipping install."
   else
     log "Installing aider-chat via pip (user)..."
-    python3 -m pip install --user --upgrade aider-chat
+    python3 -m pip install --user aider-chat
   fi
 }
 
@@ -165,8 +183,9 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   fi
 
   log "Ensuring python, git, pipx, jq..."
-  brew install python git pipx jq
-  brew upgrade python git pipx jq || true
+  for formula in python git pipx jq; do
+    install_formula_if_missing "$formula"
+  done
 else
   warn "Non-macOS detected. Install Tailscale, VS Code/Cursor, python3, git, pipx manually if needed."
 fi
