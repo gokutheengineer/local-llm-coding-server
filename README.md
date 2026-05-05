@@ -64,12 +64,31 @@ cd local-llm-coding-server
 SERVER_IP=100.x.y.z bash setup-llm-client.sh
 ```
 
-This will:
+This one command will:
 
 - Install VS Code, Tailscale, pipx, Python (mac)
-- Install VS Code extensions: **Continue**, **Cline**
+- Install VS Code/Cursor extensions: **Continue**, **Cline** when the CLI is available
 - Write `~/.continue/config.json` pointed at your server
 - Install **Aider** and create an `aider-local` launcher
+- Run a real smoke test: client -> Ollama API -> coder model generation
+
+If you only want to install the coding tools without running the generation test:
+
+```bash
+SERVER_IP=100.x.y.z bash install-coding-tools.sh
+```
+
+If you already installed everything and only want to verify the server connection:
+
+```bash
+SERVER_IP=100.x.y.z bash check-llm-connection.sh
+```
+
+That script checks:
+
+- `http://<server-ip>:11434/api/tags` returns models
+- the selected model can generate a tiny Swift function
+- the same base URL is ready for Cline, Continue, and Aider
 
 ## Daily usage
 
@@ -77,6 +96,27 @@ This will:
 - **Cline (VS Code)**: agentic file edits + terminal commands (closest to Claude Code)
 - **Aider (terminal)**: `cd repo && aider-local` — git-aware multi-file edits
 - **Open WebUI**: `http://<tailscale-ip>:3000` for chat / RAG / file uploads
+
+For coding automation, start here:
+
+```bash
+cd /path/to/your/git-repo
+aider-local
+```
+
+Then type normal requests:
+
+```text
+Inspect this repo, find the likely cause of the failing tests, fix only the needed files, and run the relevant test command.
+```
+
+For Cline, use:
+
+```text
+Provider: Ollama
+Base URL: http://100.x.y.z:11434
+Model: qwen2.5-coder:14b-instruct-q4_K_M
+```
 
 ## Switching models
 
@@ -101,6 +141,7 @@ or pick from the model dropdown inside Cline / Continue.
 
 - `curl http://<ip>:11434/api/tags` should return JSON. If not, Tailscale is down
   or `OLLAMA_HOST` is not bound to `0.0.0.0`.
+- Run `SERVER_IP=100.x.y.z bash check-llm-connection.sh` from the client for a full API + generation test.
 - `launchctl setenv OLLAMA_HOST "0.0.0.0:11434" && brew services restart ollama`
 - Keep the Mac awake: `sudo pmset -a sleep 0 disksleep 0`
 - Free a stuck model: `ollama stop <model>`
