@@ -16,11 +16,12 @@ PULL_MODELS="${PULL_MODELS:-1}"
 log()  { printf "\033[1;36m[+] %s\033[0m\n" "$*"; }
 warn() { printf "\033[1;33m[!] %s\033[0m\n" "$*"; }
 die()  { printf "\033[1;31m[x] %s\033[0m\n" "$*"; exit 1; }
-install_formula_if_missing() {
+install_or_upgrade_formula() {
   local formula="$1"
 
   if brew list --formula "$formula" >/dev/null 2>&1; then
-    log "$formula already installed. Skipping."
+    log "$formula already installed. Checking for updates..."
+    brew upgrade "$formula" || true
   else
     log "Installing $formula..."
     brew install "$formula"
@@ -49,14 +50,15 @@ fi
 # ---- Core CLI tools ----
 log "Ensuring core tools: ollama, git, wget, htop, jq..."
 for formula in ollama git wget htop jq; do
-  install_formula_if_missing "$formula"
+  install_or_upgrade_formula "$formula"
 done
 
 # ---- Tailscale ----
 # Same idea as Docker: avoid brew install --cask if the app already lives in /Applications.
 if [[ "$INSTALL_TAILSCALE" == "1" ]]; then
   if brew list --cask tailscale >/dev/null 2>&1; then
-    log "Tailscale already installed (Homebrew). Skipping."
+    log "Tailscale already installed (Homebrew). Checking for updates..."
+    brew upgrade --cask tailscale || true
   elif [[ -d /Applications/Tailscale.app ]]; then
     log "Tailscale already present at /Applications/Tailscale.app (not managed by Homebrew). Skipping install."
     warn "To switch to Homebrew: remove Tailscale from Applications, then re-run this script."
@@ -72,7 +74,8 @@ fi
 # /Applications/Docker.app install so we do not run brew install into a conflict.
 if [[ "$INSTALL_WEBUI" == "1" ]]; then
   if brew list --cask docker >/dev/null 2>&1; then
-    log "Docker Desktop already installed (Homebrew). Skipping."
+    log "Docker Desktop already installed (Homebrew). Checking for updates..."
+    brew upgrade --cask docker || true
   elif [[ -d /Applications/Docker.app ]]; then
     log "Docker Desktop already present at /Applications/Docker.app (not managed by Homebrew). Skipping install."
     warn "To switch to Homebrew: quit Docker, remove the app from Applications, then re-run this script."

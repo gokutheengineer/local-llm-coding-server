@@ -40,7 +40,8 @@ install_cask_if_missing() {
   local label="$3"
 
   if brew list --cask "$cask" >/dev/null 2>&1; then
-    log "$label already installed (Homebrew). Skipping."
+    log "$label already installed (Homebrew). Checking for updates..."
+    brew upgrade --cask "$cask" || true
   elif [[ -d "$app_path" ]]; then
     log "$label already exists at $app_path. Skipping Homebrew install."
   else
@@ -49,11 +50,12 @@ install_cask_if_missing() {
   fi
 }
 
-install_formula_if_missing() {
+install_or_upgrade_formula() {
   local formula="$1"
 
   if brew list --formula "$formula" >/dev/null 2>&1; then
-    log "$formula already installed. Skipping."
+    log "$formula already installed. Checking for updates..."
+    brew upgrade "$formula" || true
   else
     log "Installing $formula..."
     brew install "$formula"
@@ -184,7 +186,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 
   log "Ensuring python, git, pipx, jq..."
   for formula in python git pipx jq; do
-    install_formula_if_missing "$formula"
+    install_or_upgrade_formula "$formula"
   done
 else
   warn "Non-macOS detected. Install Tailscale, VS Code/Cursor, python3, git, pipx manually if needed."
